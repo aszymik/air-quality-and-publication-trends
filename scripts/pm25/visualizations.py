@@ -5,7 +5,7 @@ import seaborn as sns
 import pandas as pd
 import geopandas as gpd
 
-def plot_trends_for_chosen_cities(df: pd.DataFrame, chosen_years: list, chosen_cities: list):
+def plot_trends_for_chosen_cities(df: pd.DataFrame, chosen_years: list, chosen_cities: list, output_path: str):
     """Rysuje wykres trendów średnich miesięcznych PM2.5 dla wybranych dwóch miast."""
 
     assert len(chosen_cities) == 2, "Funkcja obsługuje dokładnie dwa miasta."
@@ -36,9 +36,9 @@ def plot_trends_for_chosen_cities(df: pd.DataFrame, chosen_years: list, chosen_c
 
     plt.legend(title='Miejscowość / Rok')
     plt.tight_layout()
-    plt.show()
+    plt.savefig(output_path, dpi=300)
 
-def plot_heatmaps_for_cities(df_means: pd.DataFrame):
+def plot_heatmaps_for_cities(df_means: pd.DataFrame, output_path: str):
     """Rysuje heatmapy miesięcznych średnich PM2.5 dla miast."""
 
     cities = [col for col in df_means.columns if col not in ['Data', 'Rok', 'Miesiąc']]
@@ -65,9 +65,9 @@ def plot_heatmaps_for_cities(df_means: pd.DataFrame):
         ax.set_xticklabels(pivot.columns)
 
     plt.tight_layout()
-    plt.show()
+    plt.savefig(output_path, dpi=300)
 
-def plot_who_exceeding_days(selected_stations: pd.DataFrame):
+def plot_who_exceeding_days(selected_stations: pd.DataFrame, output_path: str):
     """Rysuje wykres słupkowy liczby dni przekroczeń normy WHO dla wybranych stacji."""
     plot_df = selected_stations[[2015, 2018, 2021, 2024]]
 
@@ -87,13 +87,14 @@ def plot_who_exceeding_days(selected_stations: pd.DataFrame):
     plt.legend(title='Rok')
 
     plt.tight_layout()
-    plt.show()
+    plt.savefig(output_path, dpi=300)
 
 def plot_voivodeship_exceeding_days_map(
     voivodeship_counts: pd.DataFrame,
     geojson_path: str,
     years: list,
-    cmap: str = 'OrRd'
+    output_path: str,
+    cmap: str = 'OrRd',
 ):
     """Rysuje mapy województw z liczbą dni przekroczeń normy PM2.5 dla wybranych lat."""
     gdf = gpd.read_file(geojson_path)
@@ -159,5 +160,5 @@ def plot_voivodeship_exceeding_days_map(
         )
 
     plt.tight_layout()
-    plt.show()
+    plt.savefig(output_path, dpi=300)
     
