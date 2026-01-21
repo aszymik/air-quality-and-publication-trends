@@ -32,6 +32,5 @@ rule pm25_year:
         python {input.runner} \
             --year {params.year} \
             --config {input.config} \
-            --outdir {params.outdir} \
             > {log} 2>&1
         """

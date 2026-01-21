@@ -5,11 +5,8 @@ import seaborn as sns
 import pandas as pd
 import geopandas as gpd
 
-def plot_trends_for_chosen_cities(df: pd.DataFrame, chosen_years: list, chosen_cities: list, output_path: str):
+def plot_trends_for_chosen_cities(df: pd.DataFrame, year: int, chosen_cities: list, output_dir: str):
     """Rysuje wykres trendów średnich miesięcznych PM2.5 dla wybranych dwóch miast."""
-
-    assert len(chosen_cities) == 2, "Funkcja obsługuje dokładnie dwa miasta."
-    assert len(chosen_years) == 2, "Funkcja obsługuje dokładnie dwa lata."
 
     plt.figure(figsize=(12, 6))
 
@@ -28,7 +25,7 @@ def plot_trends_for_chosen_cities(df: pd.DataFrame, chosen_years: list, chosen_c
         linewidth=2.5
     )
 
-    plt.title(f'Trend średnich miesięcznych stężeń PM2.5: {chosen_cities[0]} vs {chosen_cities[1]} ({chosen_years[0]} vs {chosen_years[1]})', fontsize=16)
+    plt.title(f'Trend średnich miesięcznych stężeń PM2.5 dla miast {", ".join(chosen_cities)} w roku {year}', fontsize=16)
     plt.xlabel('Miesiąc', fontsize=12)
     plt.ylabel('Średnie stężenie PM2.5 [µg/m³]', fontsize=12)
     plt.xticks(range(1, 13))  
@@ -36,9 +33,10 @@ def plot_trends_for_chosen_cities(df: pd.DataFrame, chosen_years: list, chosen_c
 
     plt.legend(title='Miejscowość / Rok')
     plt.tight_layout()
+    output_path = f"{output_dir}/trends_{'_'.join(city.lower() for city in chosen_cities)}.png"
     plt.savefig(output_path, dpi=300)
 
-def plot_heatmaps_for_cities(df_means: pd.DataFrame, output_path: str):
+def plot_heatmaps_for_cities(df_means: pd.DataFrame, output_dir: str):
     """Rysuje heatmapy miesięcznych średnich PM2.5 dla miast."""
 
     cities = [col for col in df_means.columns if col not in ['Data', 'Rok', 'Miesiąc']]
@@ -65,9 +63,10 @@ def plot_heatmaps_for_cities(df_means: pd.DataFrame, output_path: str):
         ax.set_xticklabels(pivot.columns)
 
     plt.tight_layout()
+    output_path = f"{output_dir}/heatmaps_cities.png"
     plt.savefig(output_path, dpi=300)
 
-def plot_who_exceeding_days(selected_stations: pd.DataFrame, output_path: str):
+def plot_who_exceeding_days(selected_stations: pd.DataFrame, output_dir: str):
     """Rysuje wykres słupkowy liczby dni przekroczeń normy WHO dla wybranych stacji."""
     plot_df = selected_stations[[2015, 2018, 2021, 2024]]
 
@@ -87,13 +86,14 @@ def plot_who_exceeding_days(selected_stations: pd.DataFrame, output_path: str):
     plt.legend(title='Rok')
 
     plt.tight_layout()
+    output_path = f"{output_dir}/who_exceeding_days.png"
     plt.savefig(output_path, dpi=300)
 
 def plot_voivodeship_exceeding_days_map(
     voivodeship_counts: pd.DataFrame,
     geojson_path: str,
     years: list,
-    output_path: str,
+    output_dir: str,
     cmap: str = 'OrRd',
 ):
     """Rysuje mapy województw z liczbą dni przekroczeń normy PM2.5 dla wybranych lat."""
@@ -160,5 +160,6 @@ def plot_voivodeship_exceeding_days_map(
         )
 
     plt.tight_layout()
+    output_path = f"{output_dir}/voivodeship_exceeding_days_map.png"
     plt.savefig(output_path, dpi=300)
     

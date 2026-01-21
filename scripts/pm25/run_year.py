@@ -1,7 +1,7 @@
 import argparse
+import json
+import os
 import yaml
-import pandas as pd
-from pathlib import Path
 
 from load_data import (
     get_metadata,
@@ -9,43 +9,76 @@ from load_data import (
     download_and_preprocess_data
 )
 from data_analysis import (
+    get_monthly_means_for_stations,
+    get_chosen_monthly_means,
     get_monthly_means_for_cities,
-    get_who_norm_exceeding_days
+    get_who_norm_exceeding_days,
+    get_max_and_min_k_stations,
+    get_voivodeship_exceeding_days
+)
+
+from visualizations import (
+    plot_trends_for_chosen_cities,
+    plot_heatmaps_for_cities,
+    plot_who_exceeding_days,
+    plot_voivodeship_exceeding_days_map
 )
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--year", type=int, required=True)
+    parser.add_argument("--year", required=True)
     parser.add_argument("--config", required=True)
-    parser.add_argument("--outdir", required=True)
     args = parser.parse_args()
 
-    outdir = Path(args.outdir)
-    outdir.mkdir(parents=True, exist_ok=True)
+    year = args.year
+    outdir = f"results/pm25/{year}"
+    os.makedirs(outdir, exist_ok=True)
 
     with open(args.config) as f:
-        cfg = yaml.safe_load(f)
+        config = yaml.safe_load(f)
+    
+    cities = config["cities"]
+    gios_ids = json.loads(open("data/gios_ids.json").read())
 
     # ---- metadata ----
     metadata = get_metadata()
-    old_to_new, code_to_city, _ = get_code_mappings(metadata)
+    old_to_new_code, code_to_city, code_to_voivodeship = get_code_mappings(metadata)
 
     # ---- data ----
     df = download_and_preprocess_data(
         year=args.year,
-        gios_id="1234",              # to do
-        gios_filename="pm25.xlsx",   # to do
+        gios_id=gios_ids[year],
+        gios_filename=f'{year}_PM25_1g.xlsx',
         code_to_city=code_to_city,
-        old_to_new_code=old_to_new
+        old_to_new_code=old_to_new_code
     )
 
-    # ---- daily / monthly ----
-    daily_means = get_monthly_means_for_cities(df)
-    daily_means.to_csv(outdir / "daily_means.csv", index=False)
+    # ---- monthly means ----
+    monthly_means = get_monthly_means_for_stations(df)
+    monthly_means.to_csv(outdir / "monthly_means_stations.csv", index=False)
 
-    # ---- exceedance ----
+    # ---- trends for chosen cities ----
+    year = int(year)
+    df_plot = get_chosen_monthly_means(df, [year], cities)
+    plot_trends_for_chosen_cities(df_plot, year, cities, outdir / "figures")
+
+    # ---- monthly means for cities ----
+    df_means = get_monthly_means_for_cities(df)
+    df_means.to_csv(outdir / "monthly_means_cities.csv", index=False)
+    plot_heatmaps_for_cities(df_means, outdir / "figures")
+
+    # ---- WHO exceeding days ----
     exceed = get_who_norm_exceeding_days(df)
     exceed.to_csv(outdir / "exceedance_days.csv")
+    top_stations = get_max_and_min_k_stations(exceed, chosen_year=year, k=3)
+    plot_who_exceeding_days(top_stations, outdir / "figures")
+
+    # ---- voivodeship exceeding days map ----
+    voiv_counts = get_voivodeship_exceeding_days(df, code_to_voivodeship, threshold=15)
+    voiv_counts.to_csv(outdir / "voivodeship_exceedance_days.csv")
+
+    geojson_path = 'data/wojewodztwa-min.geojson'
+    plot_voivodeship_exceeding_days_map(voiv_counts, geojson_path, [year], outdir / "figures")
 
 if __name__ == "__main__":
     main()
