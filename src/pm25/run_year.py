@@ -31,6 +31,9 @@ def main():
     args = parser.parse_args()
 
     year = args.year
+    if year < 2006 or year > 2024:
+        print(f'No data for the chosen year ({year}). Please select a year between 2006 and 2024.')
+        return
     outdir = f"results/pm25/{year}"
     os.makedirs(outdir, exist_ok=True)
 
@@ -38,13 +41,14 @@ def main():
         config = yaml.safe_load(f)
     
     cities = config["cities"]
+    print(cities)
     gios_ids = json.loads(open("data/gios_ids.json").read())
 
-    # ---- metadata ----
+    # Pobierz metadane
     metadata = get_metadata()
     old_to_new_code, code_to_city, code_to_voivodeship = get_code_mappings(metadata)
 
-    # ---- data ----
+    # Pobierz dane
     df = download_and_preprocess_data(
         year=args.year,
         gios_id=gios_ids[year],
@@ -52,33 +56,35 @@ def main():
         code_to_city=code_to_city,
         old_to_new_code=old_to_new_code
     )
+    os.makedirs(f'data/{year}', exist_ok=True)
+    df.to_csv(f'data/{year}/{year}_data.csv')
 
-    # ---- monthly means ----
+    # Obliczanie średnich miesięcznych
     monthly_means = get_monthly_means_for_stations(df)
-    monthly_means.to_csv(outdir / "monthly_means_stations.csv", index=False)
+    monthly_means.to_csv(f"{outdir}/monthly_means_stations.csv", index=False)
 
-    # ---- trends for chosen cities ----
+    # Trendy dla wybranych miast
     year = int(year)
     df_plot = get_chosen_monthly_means(df, [year], cities)
-    plot_trends_for_chosen_cities(df_plot, year, cities, outdir / "figures")
+    plot_trends_for_chosen_cities(df_plot, year, cities, f"{outdir}/figures")
 
-    # ---- monthly means for cities ----
+    # Średnie miesięczne
     df_means = get_monthly_means_for_cities(df)
-    df_means.to_csv(outdir / "monthly_means_cities.csv", index=False)
-    plot_heatmaps_for_cities(df_means, outdir / "figures")
+    df_means.to_csv(f"{outdir}/monthly_means_cities.csv", index=False)
+    plot_heatmaps_for_cities(df_means, f"{outdir}/figures")
 
-    # ---- WHO exceeding days ----
+    # Dni z przekroczeniem normy WHO
     exceed = get_who_norm_exceeding_days(df)
-    exceed.to_csv(outdir / "exceedance_days.csv")
+    exceed.to_csv(f"{outdir}/exceedance_days.csv")
     top_stations = get_max_and_min_k_stations(exceed, chosen_year=year, k=3)
-    plot_who_exceeding_days(top_stations, outdir / "figures")
+    plot_who_exceeding_days(top_stations, f"{outdir}/figures")
 
-    # ---- voivodeship exceeding days map ----
+    # Mapa dni z przekroczeniem normy dla województw
     voiv_counts = get_voivodeship_exceeding_days(df, code_to_voivodeship, threshold=15)
-    voiv_counts.to_csv(outdir / "voivodeship_exceedance_days.csv")
+    voiv_counts.to_csv(f"{outdir}/voivodeship_exceedance_days.csv")
 
     geojson_path = 'data/wojewodztwa-min.geojson'
-    plot_voivodeship_exceeding_days_map(voiv_counts, geojson_path, [year], outdir / "figures")
+    plot_voivodeship_exceeding_days_map(voiv_counts, geojson_path, [year], f"{outdir}/figures")
 
 if __name__ == "__main__":
     main()

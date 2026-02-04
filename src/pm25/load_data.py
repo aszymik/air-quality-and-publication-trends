@@ -107,7 +107,7 @@ def add_multiindex(df, code_dict: dict) -> pd.DataFrame:
     Returns:
         DataFrame z MultiIndexem (miejscowość, kod stacji)."""
     # Pomijamy kolumnę 'Data'
-    data_col = df['Data']
+    date_col = df['Data']
     data_values = df.drop(columns=['Data'])
     
     # Tworzymy MultiIndex na podstawie słownika metadanych
@@ -120,7 +120,7 @@ def add_multiindex(df, code_dict: dict) -> pd.DataFrame:
     data_values.columns = multi_index
     
     # Dodajemy z powrotem kolumnę Data
-    data_values.insert(0, 'Data', data_col)
+    data_values.insert(0, 'Data', date_col)
     return data_values
 
 def change_midnight_measurements(df: pd.DataFrame) -> pd.DataFrame:
@@ -139,7 +139,7 @@ def change_midnight_measurements(df: pd.DataFrame) -> pd.DataFrame:
 
     return df
 
-def download_and_preprocess_data(year: int, gios_id: str, gios_filename: str, code_to_city: dict, old_to_new_code: dict, header_index: int=0) -> pd.DataFrame:
+def download_and_preprocess_data(year: int, gios_id: str, gios_filename: str, code_to_city: dict, old_to_new_code: dict) -> pd.DataFrame:
     """Pobiera i przygotowuje dane z archiwum GIOŚ dla podanego roku.
     Arguments:
         year: rok danych.
@@ -153,6 +153,7 @@ def download_and_preprocess_data(year: int, gios_id: str, gios_filename: str, co
     df = download_gios_archive(year, gios_id, gios_filename)
 
     # Zmieniamy nazwy kolumn na kody stacji
+    header_index = 1 if year >= 2016 else 0  # index wiersza z nazwami stacji
     col_names = df.iloc[header_index]
     col_names[0] = 'Data'
     df.columns = col_names
