@@ -13,14 +13,13 @@ def parse_args():
 def fetch_pubmed_data(year, params):
     Entrez.email = params["entrez_email"]
     
-    # Budowa zapytania
     journals_q = " OR ".join([f'"{j}"[Journal]' for j in params["journals"]])
     keywords_q = " OR ".join([f'"{k}"' for k in params["keywords"]])
     query = f"({journals_q}) AND ({keywords_q}) AND {year}[pdat]"
     
     print(f"Searching for: {query}")
     
-    # 1. Esearch - pobranie ID
+    # Pobranie ID
     with Entrez.esearch(db="pubmed", term=query, retmax=params["max_records"]) as handle:
         search_results = Entrez.read(handle)
     
@@ -29,7 +28,7 @@ def fetch_pubmed_data(year, params):
         print(f"No records found for year {year}")
         return pd.DataFrame()
 
-    # 2. Efetch - pobranie szczegółów (Summary często nie ma pełnych danych o autorach/afiliacji)
+    # Pobranie szczegółów
     with Entrez.efetch(db="pubmed", id=",".join(ids), rettype="medline", retmode="xml") as handle:
         records = Entrez.read(handle)
     
@@ -53,29 +52,26 @@ def main():
     with open(args.config, 'r') as f:
         params = yaml.safe_load(f)
 
-    # Folder wyjściowy
     output_dir = Path(f"results/literature/{args.year}")
     output_dir.mkdir(parents=True, exist_ok=True)
     
-    # Pobieranie danych
+    # Pobierz dane
     df = fetch_pubmed_data(args.year, params)
     
     if df.empty:
         return
 
-    # 4. Zapis do CSV
+    # Zapisz do CSV
     csv_path = output_dir / "pubmed_papers.csv"
     df.to_csv(csv_path, index=False)
     print(f"Saved records to {csv_path}")
 
-    # 5. Agregacje
+    # Podsumowanie wyników
     print("\n--- Aggregations ---")
-    
-    # Top Journals
+
     top_journals = df['journal'].value_counts().head(5)
     print("Top Journals:\n", top_journals)
     
-    # Summary
     summary = {
         "year": args.year,
         "total_records": len(df),
@@ -83,7 +79,7 @@ def main():
     }
     print("Summary by year:", summary)
 
-    # Opcjonalnie: zapis agregacji do pliku tekstowego
+
     with open(output_dir / "summary.txt", "w") as f:
         f.write(f"Summary for {args.year}:\n")
         f.write(f"Total papers: {len(df)}\n")

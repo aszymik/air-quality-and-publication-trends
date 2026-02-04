@@ -54,7 +54,6 @@ rule pubmed_year:
         "logs/pubmed_{year}.log"
     shell:
         """
-        # Snakemake automatycznie stworzy katalog nadrzędny results/literature/{year}
         python {input.script} \
             --year {wildcards.year} \
             --config {input.config} \
