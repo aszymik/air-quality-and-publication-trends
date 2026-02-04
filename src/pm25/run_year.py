@@ -26,7 +26,7 @@ from visualizations import (
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--year", required=True)
+    parser.add_argument("--year", type=int, required=True)
     parser.add_argument("--config", required=True)
     args = parser.parse_args()
 
@@ -42,7 +42,8 @@ def main():
     
     cities = config["cities"]
     print(cities)
-    gios_ids = json.loads(open("data/gios_ids.json").read())
+    gios_id_data = json.loads(open("data/gios_ids.json").read())
+    gios_ids = {int(k): v for k, v in gios_id_data.items()}
 
     # Pobierz metadane
     metadata = get_metadata()
