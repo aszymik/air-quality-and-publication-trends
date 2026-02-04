@@ -57,8 +57,8 @@ def main():
         code_to_city=code_to_city,
         old_to_new_code=old_to_new_code
     )
-    os.makedirs(f'data/{year}', exist_ok=True)
-    df.to_csv(f'data/{year}/{year}_data.csv')
+    os.makedirs(f'data/tables/{year}', exist_ok=True)
+    df.to_csv(f'data/tables/{year}/{year}_data.csv')
 
     # Obliczanie średnich miesięcznych
     monthly_means = get_monthly_means_for_stations(df)
