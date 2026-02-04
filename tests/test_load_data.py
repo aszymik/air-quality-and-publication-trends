@@ -1,5 +1,5 @@
 import pandas as pd
-from scripts.load_data import (
+from src.pm25.load_data import (
     get_code_mappings,
     rename_columns,
     add_multiindex,
@@ -30,8 +30,7 @@ def test_change_midnight_measurements(midnight):
 def test_change_midnight_measurements_none(midnight):
     midnight['Data'] = [pd.NaT, '2023-01-15 14:30:00', '2023-01-17 23:59:59']
     result = change_midnight_measurements(midnight)
-    print(type(result.loc[0, 'Data']))
-    # assert pd.isna(result.loc[0, 'Data'])
+    assert pd.isna(result.loc[0, 'Data'])
     assert result.loc[1, 'Data'] == pd.Timestamp('2023-01-15 14:30:00')
 
 def test_get_code_mappings(sample_metadata):

@@ -1,5 +1,5 @@
 import pandas as pd
-from scripts.data_analysis import (
+from src.pm25.data_analysis import (
     get_monthly_means_for_stations,
     get_chosen_monthly_means,
     get_monthly_means_for_cities,
