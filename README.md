@@ -1,82 +1,119 @@
-# Analiza danych dotyczących poziomu zanieczyszczenia PM2.5
+# Analiza jakości powietrza (PM2.5) i trendów publikacji
 
+Projekt służy do automatycznej analizy danych o zanieczyszczeniu powietrza (PM2.5) w Polsce oraz powiązanych trendów w publikacjach naukowych (PubMed). Całość procesu jest zarządzana przez **Snakemake**, co gwarantuje powtarzalność i optymalizację obliczeń.
 
-Na podstawie danych udostępnionych przez GIOŚ o jakości powietrza w Polsce projekt przeprowadza analizę wraz z wykresami, istotnymi porównaniami oraz wykrywaniem dni z przekroczeniem norm na przestrzeni lat (>15 µg/m³). 
+## Struktura projektu
 
-Skupia się na pomiarach stężeń drobnego pyłu PM2.5, ze względu na wyjątkową szkodliwość wdychania tego pyłu na układ oddechowy i krwioobieg.
+```text
+├── config/
+│   └── task4.yaml              # Konfiguracja (lata, słowa kluczowe, e-mail)
+├── data/
+│   ├── gios_ids.json           # Mapowanie ID stacji GIOS
+│   └── wojewodztwa-min.geojson # Dane geograficzne do map
+├── src/
+│   ├── literature/             # Skrypty do pobierania danych z PubMed
+│   ├── pm25/                   # Skrypty do pobierania i analizy danych PM2.5
+│   └── report/                 # Skrypt generujący końcowy raport Markdown
+├── results/                    # Katalog z wynikami (generowany automatycznie)
+├── tests/                      # Testy jednostkowe (pytest)
+├── Snakefile                   # Definicja reguł pipeline'u
+├── requirements.txt            # Zależności Python
+└── README.md
 
-Źródło danych: https://powietrze.gios.gov.pl/
+```
 
-Źródło mapy używanej do obsługi granic województw: https://github.com/ppatrzyk/polska-geojson
+## Konfiguracja (`config/task4.yaml`)
 
-## Wymagania
-Python 3.11
+Działanie pipeline'u jest sterowane przez plik YAML. Pozwala on na łatwą zmianę zakresu analizy bez ingerencji w kod.
 
-Wymagane biblioteki zostały wymienione w pliku **requirements.txt**
-Główne:
-- pandas (przetrwarzanie danych)
-- matplotlib (wizualizacja)
-- requests (pobieranie dnaych z API GIOŚ)
-- pytest (testy)
+**Przykładowa konfiguracja:**
+
+```yaml
+years: [2022]                                   # Lista lat do analizy (PM2.5 i PubMed)
+cities: ["Warszawa", "Katowice"]                # Miasta, dla których generowane są szczegółowe wykresy trendów
+entrez_email: "test@example.com"                # Adres e-mail wymagany przez API NCBI (PubMed)
+max_records: 100                                # Maksymalna liczba pobieranych artykułów na rok
+journals: ["Nature", "Science"]                 # Lista czasopism do filtrowania zapytań
+keywords: ["Air Pollution", "PM2.5"]            # Słowa kluczowe wyszukiwania
+
+```
 
 ## Instalacja
+
+Zainstaluj wymagane biblioteki:
 ```bash
-git clone https://github.com/aszymik/air-quality-and-publication-trends.git
-
-cd polish-air-quality-trends
-
 pip install -r requirements.txt
+
 ```
 
-## Użycie
+## Uruchamianie i Scenariusz Działania (Task 4)
 
-Najlepiej uruchomić gotową analizę w notatniku:
+Pipeline jest sterowany przez plik konfiguracyjny `config/task4.yaml`. Poniżej przedstawiony został przykładowy scenariusz uruchamiania pipeline'u.
+
+### Krok 1: Pierwsze uruchomienie
+
+Użytkownik ustawia w `config/task4.yaml`:
+
+```yaml
+years: [2021, 2024]
+
+```
+
+Następnie uruchamia pipeline:
 
 ```bash
+snakemake --cores 1
 
-jupyter notebook main.ipynb
 ```
-Notatnik zawiera pełną wizualizację analizy.
 
-### Przykład użycia w kodzie
-```python
-from scripts.load_data import read_data_from_csv
-from scripts.data_analysis import  get_chosen_monthly_means, get_who_norm_exceeding_days
+**Rezultat:**
 
-df = read_data_from_csv('data/pm25_gios_2015_2018_2021_2024.csv')
+* System pobiera i przetwarza dane PM2.5 dla lat 2021 i 2024.
+* System pobiera dane z PubMed dla lat 2021 i 2024.
+* Generowany jest raport `results/report_task4.md` obejmujący lata {2021, 2024}.
 
-monthly_chosen = get_chosen_monthly_means(df, chosen_years=[2015, 2024], chosen_cities=['Warszawa', 'Katowice'])
+### Krok 2: Zmiana konfiguracji 
 
-exceeding_days = get_who_norm_exceeding_days(df)
+Użytkownik zmienia w `config/task4.yaml`:
+
+```yaml
+years: [2019, 2024]
+
 ```
-## Struktura projektu
-    polish-air-qaulity-trends/
 
-        data/
-            wojewodztwa-min.geojson
+Uruchamia ponownie tę samą komendę:
 
-        scripts/
-            data_analysis.py
-            load_data.py
-            visualizations.py
-            
-        tests/
-            conftest.py
-            test_data_analysis.py
-            test_load_data.py
+```bash
+snakemake --cores 1
 
-        main.ipynb
-        README.md
-        requirements.txt
+```
 
-## Uruchamianie testów
+**Oczekiwane zachowanie:**
+Pipeline wykonuje **tylko brakujące kroki**:
+
+1. Liczy PM2.5 oraz pobiera dane PubMed **tylko dla roku 2019**.
+2. **Pomija** ponowne liczenie roku 2024 (artefakty już istnieją).
+3. Generuje nowy raport zbiorczy `results/report_task4.md` dla lat {2019, 2024}.
+
+### Weryfikacja
+
+Poprawność działania (brak ponownego przeliczania roku 2024) jest weryfikowana poprzez analizę logów Snakemake: Dla reguł dotyczących roku 2024 (np. `pm25_year`, `pubmed_year`) nie pojawia się status "Running", a jedynie dla roku 2019. Snakemake zgłosi wykonanie zadań tylko dla nowych danych oraz reguły `report_task4` (ponieważ zmieniły się wejścia).
+
+## Wyniki
+
+Wyniki są zapisywane w katalogu `results/` z podziałem na lata, co zapobiega nadpisywaniu danych:
+
+* `results/pm25/{ROK}/` – dane CSV, wykresy i mapy dla danego roku.
+* `results/literature/{ROK}/` – dane CSV z publikacjami.
+* `results/report_task4.md` – zbiorczy raport w formacie Markdown.
+
+## Testowanie
+
+W projekcie zaimplementowano testy jednostkowe przy użyciu `pytest`, które pokrywają kluczowe funkcjonalności przetwarzania i analizy danych. Sprawdzają one m.in. poprawność parsowania dat z PubMed, mapowanie kodów stacji oraz analizy statystyczne.
+
+Uruchomienie testów:
+
 ```bash
 pytest
 
 ```
-## Autorzy 
-Maja Kończak
-
-Anna Szymik
-
-
