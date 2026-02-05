@@ -20,9 +20,10 @@ def fetch_pubmed_data(year, params):
     print(f"Searching for: {query}")
     
     # Pobranie ID
-    with Entrez.esearch(db="pubmed", term=query, retmax=params["max_records"]) as handle:
+    # Sortujemy po dacie publikacji, aby kod był deterministyczny
+    with Entrez.esearch(db="pubmed", term=query, retmax=params["max_records"], sort='pub_date') as handle:
         search_results = Entrez.read(handle)
-    
+        
     ids = search_results.get("IdList", [])
     if not ids:
         print(f"No records found for year {year}")
