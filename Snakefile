@@ -1,5 +1,5 @@
 DATA_DIR = "data/tables"
-METADATA_PATH = "data/tables/metadata.csv"
+METADATA_FILE = "data/tables/metadata.csv"
 PM25_RESULTS_DIR = "results/pm25"
 CONFIG_PATH = "config/task4.yaml"
 configfile: CONFIG_PATH
@@ -11,9 +11,9 @@ rule all:
     """Sprawdza, czy pliki wyjściowe już istnieją"""
     input:
         # PM25
-        expand("{PM25_RESULTS_DIR}/{year}/exceedance_days.csv", year=YEARS),
-        expand("{PM25_RESULTS_DIR}/{year}/daily_means.csv", year=YEARS),
-        expand("{PM25_RESULTS_DIR}/{year}/figures", year=YEARS),
+        expand(PM25_RESULTS_DIR + "/{year}/exceedance_days.csv", year=YEARS),
+        expand(PM25_RESULTS_DIR + "/{year}/daily_means.csv", year=YEARS),
+        expand(PM25_RESULTS_DIR + "/{year}/figures", year=YEARS),
         # PubMed
         expand("results/literature/{year}/pubmed_papers.csv", year=YEARS)
 
@@ -35,11 +35,11 @@ rule download_metadata:
 rule download_data:
     """Pobiera dane dla wybranego roku."""
     input:
-        meta=METADATA_PATH,
+        meta=METADATA_FILE,
         script="src/pm25/download_data.py",
         data_dir=DATA_DIR
     output:
-        csv="{DATA_DIR}/{year}.csv" 
+        csv = DATA_DIR + "/{year}.csv"
     params:
         year=lambda wc: wc.year
     log:
@@ -58,7 +58,7 @@ rule pm25_year:
     Liczy statystyki PM2.5 dla jednego roku
     """
     input:
-        data_dir=DATA_DIR,
+        data_csv = DATA_DIR + "/{year}.csv",
         config=CONFIG_PATH,
         metadata=METADATA_FILE,
         load="src/pm25/load_data.py",
@@ -66,12 +66,13 @@ rule pm25_year:
         viz="src/pm25/visualizations.py",
         runner="src/pm25/run_year.py"
     output:
-        exceedance="{PM25_RESULTS_DIR}/{year}/exceedance_days.csv",
-        daily="{PM25_RESULTS_DIR}/{year}/daily_means.csv",
-        figs=directory("{PM25_RESULTS_DIR}/{year}/figures")
+        exceedance = PM25_RESULTS_DIR + "/{year}/exceedance_days.csv",
+        daily = PM25_RESULTS_DIR + "/{year}/daily_means.csv",
+        figs = directory(PM25_RESULTS_DIR + "/{year}/figures")
     params:
         year=lambda wc: int(wc.year),
-        outdir=PM25_RESULTS_DIR
+        outdir=PM25_RESULTS_DIR,
+        data_dir=DATA_DIR
     log:
         "logs/pm25_{year}.log"
     shell:
