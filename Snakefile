@@ -40,11 +40,11 @@ rule download_data:
     input:
         meta=METADATA_FILE,
         script="src/pm25/download_data.py",
-        data_dir=DATA_DIR
     output:
         csv = DATA_DIR + "/{year}.csv"
     params:
-        year=lambda wc: wc.year
+        year=lambda wc: wc.year,
+        data_dir=DATA_DIR
     log:
         "logs/download_{year}.log"
     shell:
@@ -52,7 +52,7 @@ rule download_data:
         python {input.script} \
             --year {params.year} \
             --metadata {input.meta} \
-            --output_dir {input.data_dir}
+            --output_dir {params.data_dir}
             > {log} 2>&1
         """
 

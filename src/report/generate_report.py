@@ -14,7 +14,7 @@ from pathlib import Path
 STOPWORDS = set([
     "the", "of", "and", "in", "to", "a", "for", "on", "with", "is", "by", "an",
     "at", "from", "as", "validation", "using", "study", "analysis", "during",
-    "between", "impact", "effect", "effects", "associated", "association"
+    "between", "impact", "effect", "effects", "associated", "association", "how"
 ])
 
 def load_config_keywords(config_path):
@@ -120,7 +120,7 @@ def analyze_titles_and_plot(lit_df, years, output_dir):
     plt.legend(title="Rok")
     plt.tight_layout()
 
-    filename = "title_analysis_all_years.png"
+    filename = "title_analysis_comparison.png"
     output_path = Path(output_dir) / filename
     plt.savefig(output_path)
     plt.close()
@@ -234,6 +234,7 @@ def main():
     parser.add_argument("--pm25_dir", required=True)
     parser.add_argument("--lit_dir", required=True)
     parser.add_argument("--output", required=True)
+    parser.add_argument("--config")
     args = parser.parse_args()
 
     if not os.path.exists(args.pm25_dir):
@@ -241,7 +242,8 @@ def main():
         sys.exit(1)
     
     # Wczytujemy słowa kluczowe z configu i dodajemy do stopwords
-    load_config_keywords(args.config)
+    if args.config:
+        load_config_keywords(args.config)
 
     pm25_data = load_pm25_data(args.years, args.pm25_dir)
     lit_data = load_literature_data(args.years, args.lit_dir)
