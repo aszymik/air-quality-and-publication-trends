@@ -2,12 +2,10 @@ import argparse
 import json
 import os
 import yaml
+import pandas as pd
 
-from load_data import (
-    get_metadata,
-    get_code_mappings,
-    download_and_preprocess_data
-)
+from load_data import get_code_mappings
+
 from data_analysis import (
     get_monthly_means_for_stations,
     get_chosen_monthly_means,
@@ -24,41 +22,32 @@ from visualizations import (
     plot_voivodeship_exceeding_days_map
 )
 
+GEOJSON_PATH = "data/wojewodztwa-min.geojson"
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--year", type=int, required=True)
     parser.add_argument("--config", required=True)
+    parser.add_argument("--metadata", required=True)
+    parser.add_argument("--data_dir", required=True)
+    parser.add_argument("--output_dir", required=True)
     args = parser.parse_args()
 
     year = args.year
     if year < 2006 or year > 2024:
         print(f'No data for the chosen year ({year}). Please select a year between 2006 and 2024.')
         return
-    outdir = f"results/pm25/{year}"
+    outdir = f"{args.output_dir}/{year}"
     os.makedirs(outdir, exist_ok=True)
 
     with open(args.config) as f:
         config = yaml.safe_load(f)
-    
     cities = config["cities"]
-    print(cities)
-    gios_id_data = json.loads(open("data/gios_ids.json").read())
-    gios_ids = {int(k): v for k, v in gios_id_data.items()}
 
-    # Pobierz metadane
-    metadata = get_metadata()
-    old_to_new_code, code_to_city, code_to_voivodeship = get_code_mappings(metadata)
-
-    # Pobierz dane
-    df = download_and_preprocess_data(
-        year=args.year,
-        gios_id=gios_ids[year],
-        gios_filename=f'{year}_PM25_1g.xlsx',
-        code_to_city=code_to_city,
-        old_to_new_code=old_to_new_code
-    )
-    os.makedirs(f'data/tables/{year}', exist_ok=True)
-    df.to_csv(f'data/tables/{year}/{year}_data.csv')
+    # Wczytanie danych i metadanych
+    metadata = pd.read_csv(args.metadata, index_col=0)
+    _, _, code_to_voivodeship = get_code_mappings(metadata)
+    df = pd.read_csv(f"{args.data_dir}/{year}.csv", index_col=0)
 
     # Obliczanie średnich miesięcznych
     monthly_means = get_monthly_means_for_stations(df)
@@ -84,8 +73,7 @@ def main():
     voiv_counts = get_voivodeship_exceeding_days(df, code_to_voivodeship, threshold=15)
     voiv_counts.to_csv(f"{outdir}/voivodeship_exceedance_days.csv")
 
-    geojson_path = 'data/wojewodztwa-min.geojson'
-    plot_voivodeship_exceeding_days_map(voiv_counts, geojson_path, [year], f"{outdir}/figures")
+    plot_voivodeship_exceeding_days_map(voiv_counts, GEOJSON_PATH, [year], f"{outdir}/figures")
 
 if __name__ == "__main__":
     main()

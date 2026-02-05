@@ -1,43 +1,88 @@
+DATA_DIR = "data/tables"
+METADATA_PATH = "data/tables/metadata.csv"
+PM25_RESULTS_DIR = "results/pm25"
 CONFIG_PATH = "config/task4.yaml"
 configfile: CONFIG_PATH
 
 YEARS = config["years"]
 
+
 rule all:
-    # Snakemake nie uruchomi rule'a jeśli pliki wyjściowe już istnieją
+    """Sprawdza, czy pliki wyjściowe już istnieją"""
     input:
         # PM25
-        expand("results/pm25/{year}/exceedance_days.csv", year=YEARS),
-        expand("results/pm25/{year}/daily_means.csv", year=YEARS),
-        expand("results/pm25/{year}/figures", year=YEARS),
+        expand("{PM25_RESULTS_DIR}/{year}/exceedance_days.csv", year=YEARS),
+        expand("{PM25_RESULTS_DIR}/{year}/daily_means.csv", year=YEARS),
+        expand("{PM25_RESULTS_DIR}/{year}/figures", year=YEARS),
         # PubMed
         expand("results/literature/{year}/pubmed_papers.csv", year=YEARS)
+
+rule download_metadata:
+    """Pobiera metadane."""
+    input:
+        script="src/pm25/download_metadata.py"
+    output:
+        csv=METADATA_FILE
+    log:
+        "logs/metadata.log"
+    shell:
+        """
+        python {input.script} \
+            --output {output.csv} \
+            > {log} 2>&1
+        """
+
+rule download_data:
+    """Pobiera dane dla wybranego roku."""
+    input:
+        meta=METADATA_PATH,
+        script="src/pm25/download_data.py",
+        data_dir=DATA_DIR
+    output:
+        csv="{DATA_DIR}/{year}.csv" 
+    params:
+        year=lambda wc: wc.year
+    log:
+        "logs/download_{year}.log"
+    shell:
+        """
+        python {input.script} \
+            --year {params.year} \
+            --metadata {input.meta} \
+            --output_dir {input.data_dir}
+            > {log} 2>&1
+        """
 
 rule pm25_year:
     """
     Liczy statystyki PM2.5 dla jednego roku
     """
     input:
+        data_dir=DATA_DIR,
         config=CONFIG_PATH,
+        metadata=METADATA_FILE,
         load="src/pm25/load_data.py",
         analysis="src/pm25/data_analysis.py",
         viz="src/pm25/visualizations.py",
         runner="src/pm25/run_year.py"
     output:
-        exceedance="results/pm25/{year}/exceedance_days.csv",
-        daily="results/pm25/{year}/daily_means.csv",
-        figs=directory("results/pm25/{year}/figures")
+        exceedance="{PM25_RESULTS_DIR}/{year}/exceedance_days.csv",
+        daily="{PM25_RESULTS_DIR}/{year}/daily_means.csv",
+        figs=directory("{PM25_RESULTS_DIR}/{year}/figures")
     params:
         year=lambda wc: int(wc.year),
-        outdir=lambda wc: f"results/pm25/{wc.year}"
+        outdir=PM25_RESULTS_DIR
     log:
         "logs/pm25_{year}.log"
     shell:
         """
-        mkdir -p {params.outdir}/figures
+        mkdir -p {params.outdir}/{year}/figures
         python {input.runner} \
             --year {params.year} \
             --config {input.config} \
+            --metadata {input.metadata} \
+            --data_dir {input.data_dir} \
+            --output_dir {params.outdir}
             > {log} 2>&1
         """
 
