@@ -1,6 +1,6 @@
 # Analiza jakości powietrza (PM2.5) i trendów publikacji
 
-Projekt służy do automatycznej analizy danych o zanieczyszczeniu powietrza (PM2.5) w Polsce oraz powiązanych trendów w publikacjach naukowych (PubMed). Całość procesu jest zarządzana przez **Snakemake**, co gwarantuje powtarzalność i optymalizację obliczeń.
+Projekt służy do automatycznej analizy danych o zanieczyszczeniu powietrza (PM2.5) w Polsce oraz powiązanych trendów w publikacjach naukowych (PubMed). Całość procesu jest zarządzana przez Snakemake, co gwarantuje powtarzalność i optymalizację obliczeń.
 
 ## Struktura projektu
 
@@ -46,7 +46,7 @@ pip install -r requirements.txt
 
 ```
 
-## Uruchamianie i Scenariusz Działania (Task 4)
+## Uruchamianie i przykładowy scenariusz działania
 
 Pipeline jest sterowany przez plik konfiguracyjny `config/task4.yaml`. Poniżej przedstawiony został przykładowy scenariusz uruchamiania pipeline'u.
 
@@ -98,6 +98,17 @@ Pipeline wykonuje **tylko brakujące kroki**:
 ### Weryfikacja
 
 Poprawność działania (brak ponownego przeliczania roku 2024) jest weryfikowana poprzez analizę logów Snakemake: Dla reguł dotyczących roku 2024 (np. `pm25_year`, `pubmed_year`) nie pojawia się status "Running", a jedynie dla roku 2019. Snakemake zgłosi wykonanie zadań tylko dla nowych danych oraz reguły `report_task4` (ponieważ zmieniły się wejścia).
+
+## Zaawansowane opcje uruchamiania (Checksum vs Mtime)
+
+Domyślnie Snakemake decyduje o ponownym uruchomieniu zadań na podstawie czasu modyfikacji plików (`mtime`) – jeśli plik wejściowy jest nowszy niż wyjściowy, uruchamia ponownie. Można jednak wymusić weryfikację na podstawie zawartości pliku, dodając flagę:
+
+```bash
+snakemake --cores 1 --rerun-triggers checksum
+
+```
+Jej użycie sprawia, że Snakemake oblicza hash zawartości pliku. Jeśli treść pliku wejściowego się nie zmieniła (nawet jeśli data jest nowa), nie uruchamia ponownie. Jest to bardziej precyzyjne podejście, opłacalne kiedy wykonywane na plikach operacje są kosztowne, ale uruchamianie trwa dłużej, bo Snakemake musi przeczytać pliki, by policzyć hash.
+
 
 ## Wyniki
 
