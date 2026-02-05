@@ -12,10 +12,13 @@ rule all:
     input:
         # PM25
         expand(PM25_RESULTS_DIR + "/{year}/exceedance_days.csv", year=YEARS),
-        expand(PM25_RESULTS_DIR + "/{year}/daily_means.csv", year=YEARS),
+        expand(PM25_RESULTS_DIR + "/{year}/monthly_means_stations.csv", year=YEARS),
+        expand(PM25_RESULTS_DIR + "/{year}/monthly_means_cities.csv", year=YEARS),
         expand(PM25_RESULTS_DIR + "/{year}/figures", year=YEARS),
         # PubMed
-        expand("results/literature/{year}/pubmed_papers.csv", year=YEARS)
+        expand("results/literature/{year}/pubmed_papers.csv", year=YEARS),
+        # Raport
+        "results/report_task4.md"
 
 rule download_metadata:
     """Pobiera metadane."""
@@ -67,7 +70,9 @@ rule pm25_year:
         runner="src/pm25/run_year.py"
     output:
         exceedance = PM25_RESULTS_DIR + "/{year}/exceedance_days.csv",
-        daily = PM25_RESULTS_DIR + "/{year}/daily_means.csv",
+        monthly_stations = PM25_RESULTS_DIR + "/{year}/monthly_means_stations.csv",
+        monthly_cities = PM25_RESULTS_DIR + "/{year}/monthly_means_cities.csv",
+        voivodeship = PM25_RESULTS_DIR + "/{year}/voivodeship_exceedance_days.csv",
         figs = directory(PM25_RESULTS_DIR + "/{year}/figures")
     params:
         year=lambda wc: int(wc.year),
@@ -77,12 +82,12 @@ rule pm25_year:
         "logs/pm25_{year}.log"
     shell:
         """
-        mkdir -p {params.outdir}/{year}/figures
+        mkdir -p "{params.outdir}/{params.year}/figures"
         python {input.runner} \
             --year {params.year} \
             --config {input.config} \
             --metadata {input.metadata} \
-            --data_dir {input.data_dir} \
+            --data_dir {params.data_dir} \
             --output_dir {params.outdir}
             > {log} 2>&1
         """
@@ -103,5 +108,32 @@ rule pubmed_year:
         python {input.script} \
             --year {wildcards.year} \
             --config {input.config} \
+            > {log} 2>&1
+        """
+
+rule report_task4:
+    """
+    Zbiera wyniki PM2.5 i PubMed dla wszystkich lat i generuje jeden wspólny raport.
+    """
+    input:
+        pm25_files = expand(PM25_RESULTS_DIR + "/{year}/exceedance_days.csv", year=YEARS),
+        pubmed_files = expand("results/literature/{year}/pubmed_papers.csv", year=YEARS),
+        figures = expand(PM25_RESULTS_DIR + "/{year}/figures", year=YEARS),
+        script = "src/report/generate_report.py"
+    output:
+        report = "results/report_task4.md"
+    params:
+        years = YEARS,
+        pm25_dir = PM25_RESULTS_DIR,
+        lit_dir = "results/literature"
+    log:
+        "logs/report_task4.log"
+    shell:
+        """
+        python {input.script} \
+            --years {params.years} \
+            --pm25_dir {params.pm25_dir} \
+            --lit_dir {params.lit_dir} \
+            --output {output.report} \
             > {log} 2>&1
         """

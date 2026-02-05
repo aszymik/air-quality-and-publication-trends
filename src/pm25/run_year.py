@@ -4,7 +4,10 @@ import os
 import yaml
 import pandas as pd
 
-from load_data import get_code_mappings
+from load_data import (
+    get_code_mappings,
+    read_data_from_csv
+)
 
 from data_analysis import (
     get_monthly_means_for_stations,
@@ -45,9 +48,9 @@ def main():
     cities = config["cities"]
 
     # Wczytanie danych i metadanych
-    metadata = pd.read_csv(args.metadata, index_col=0)
+    metadata = pd.read_csv(args.metadata)
     _, _, code_to_voivodeship = get_code_mappings(metadata)
-    df = pd.read_csv(f"{args.data_dir}/{year}.csv", index_col=0)
+    df = read_data_from_csv(f"{args.data_dir}/{year}.csv")
 
     # Obliczanie średnich miesięcznych
     monthly_means = get_monthly_means_for_stations(df)

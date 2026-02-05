@@ -51,4 +51,7 @@ def main():
             code_to_city=code_to_city,
             old_to_new_code=old_to_new_code
         )
-    df.to_csv(data_csv_path)
+    df.to_csv(data_csv_path, index=None)
+
+if __name__ == "__main__":
+    main()
