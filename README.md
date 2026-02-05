@@ -99,15 +99,23 @@ Pipeline wykonuje **tylko brakujące kroki**:
 
 Poprawność działania (brak ponownego przeliczania roku 2024) jest weryfikowana poprzez analizę logów Snakemake: Dla reguł dotyczących roku 2024 (np. `pm25_year`, `pubmed_year`) nie pojawia się status "Running", a jedynie dla roku 2019. Snakemake zgłosi wykonanie zadań tylko dla nowych danych oraz reguły `report_task4` (ponieważ zmieniły się wejścia).
 
-## Zaawansowane opcje uruchamiania (Checksum vs Mtime)
+### Zaawansowane opcje uruchamiania
 
-Domyślnie Snakemake decyduje o ponownym uruchomieniu zadań na podstawie czasu modyfikacji plików (`mtime`) – jeśli plik wejściowy jest nowszy niż wyjściowy, uruchamia ponownie. Można jednak wymusić weryfikację na podstawie zawartości pliku, dodając flagę:
+Domyślnie Snakemake decyduje o ponownym uruchomieniu zadań na podstawie kilku reguł ([link do dokumnetacji](https://snakemake.readthedocs.io/en/v7.14.1/executing/cli.html)): 
+
+* `mtime`: czas modyfikacji plików wejściowych (czy którykolwiek z nich ma nowszy mtime niż plik wyjściowy);
+* `params`: zmiana parametrów z sekcji *params*;
+* `input`: zmiana listy logicznych wejść reguły;
+* `software-env`: zmiana w środowisku wykonania;
+* `code`: zmiany w kodzie reguły.
+
+Zapewnia to spójność wyników z aktualnym kodem workflow, konfiguracją oraz środowiskiem uruchomieniowym. Można modyfikować triggery flagą `--rerun-triggers`. Przykładowo, uruchomienie pipeline'u komendą
 
 ```bash
-snakemake --cores 1 --rerun-triggers checksum
-
+snakemake --cores 1 --rerun-triggers mtime
 ```
-Jej użycie sprawia, że Snakemake oblicza hash zawartości pliku. Jeśli treść pliku wejściowego się nie zmieniła (nawet jeśli data jest nowa), nie uruchamia ponownie. Jest to bardziej precyzyjne podejście, opłacalne kiedy wykonywane na plikach operacje są kosztowne, ale uruchamianie trwa dłużej, bo Snakemake musi przeczytać pliki, by policzyć hash.
+
+W takim trybie Snakemake ponownie uruchamia zadania tylko na podstawie czasu modyfikacji plików.
 
 
 ## Wyniki
