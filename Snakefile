@@ -62,7 +62,6 @@ rule pm25_year:
     """
     input:
         data_csv = DATA_DIR + "/{year}.csv",
-        config=CONFIG_PATH,
         metadata=METADATA_FILE,
         load="src/pm25/load_data.py",
         analysis="src/pm25/data_analysis.py",
@@ -77,7 +76,8 @@ rule pm25_year:
     params:
         year=lambda wc: int(wc.year),
         outdir=PM25_RESULTS_DIR,
-        data_dir=DATA_DIR
+        data_dir=DATA_DIR,
+        config=CONFIG_PATH
     log:
         "logs/pm25_{year}.log"
     shell:
@@ -85,7 +85,7 @@ rule pm25_year:
         mkdir -p "{params.outdir}/{params.year}/figures"
         python {input.runner} \
             --year {params.year} \
-            --config {input.config} \
+            --config {params.config} \
             --metadata {input.metadata} \
             --data_dir {params.data_dir} \
             --output_dir {params.outdir}
