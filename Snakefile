@@ -97,19 +97,21 @@ rule pubmed_year:
     Pobiera dane literaturowe PubMed dla wybranego roku i słów kluczowych.
     """
     input:
-        script="src/literature/pubmed_fetch.py",
-        config=CONFIG_PATH
+        script="src/literature/pubmed_fetch.py"
     output:
         csv="results/literature/{year}/pubmed_papers.csv"
+    params:
+        config=CONFIG_PATH
     log:
         "logs/pubmed_{year}.log"
     shell:
         """
         python {input.script} \
             --year {wildcards.year} \
-            --config {input.config} \
+            --config {params.config} \
             > {log} 2>&1
         """
+
 
 rule report_task4:
     """
