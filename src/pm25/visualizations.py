@@ -43,8 +43,12 @@ def plot_heatmaps_for_cities(df_means: pd.DataFrame, output_dir: str):
     cities = [col for col in df_means.columns if col not in ['Data', 'Rok', 'Miesiąc']]
 
     n = len(cities)
-    _, axes = plt.subplots(n//2, 2, figsize=(14, 2*n))
-    axes = axes.flatten()
+    if n > 1:
+        _, axes = plt.subplots(n//2, 2, figsize=(14, 2*n))
+        axes = axes.flatten()
+    else: 
+        _, axes = plt.subplots(1, 1, figsize=(7, 2))
+        axes = [axes]
 
     for ax, city in zip(axes, cities):
         df_city = df_means[['Rok','Miesiąc', city]]
