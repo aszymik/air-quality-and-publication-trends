@@ -5,6 +5,7 @@ import seaborn as sns
 import pandas as pd
 import geopandas as gpd
 
+
 def plot_trends_for_chosen_cities(df: pd.DataFrame, year: int, chosen_cities: list, output_dir: str):
     """Rysuje wykres trendów średnich miesięcznych PM2.5 dla wybranych dwóch miast."""
 
@@ -33,7 +34,7 @@ def plot_trends_for_chosen_cities(df: pd.DataFrame, year: int, chosen_cities: li
 
     plt.legend(title='Miejscowość / Rok')
     plt.tight_layout()
-    output_path = f"{output_dir}/trends_{'_'.join(city.lower() for city in chosen_cities)}.png"
+    output_path = f"{output_dir}/trends_chosen_cities.png"
     plt.savefig(output_path, dpi=300)
 
 def plot_heatmaps_for_cities(df_means: pd.DataFrame, output_dir: str):
@@ -68,15 +69,17 @@ def plot_heatmaps_for_cities(df_means: pd.DataFrame, output_dir: str):
 
 def plot_who_exceeding_days(selected_stations: pd.DataFrame, output_dir: str):
     """Rysuje wykres słupkowy liczby dni przekroczeń normy WHO dla wybranych stacji."""
-    plot_df = selected_stations[[2015, 2018, 2021, 2024]]
 
-    plot_df.plot(
+    ax = selected_stations.plot(
         kind='bar',
         figsize=(12, 7),
         width=0.4,          
         edgecolor='black',
         rot=0
     )
+    labels = [item.get_text() for item in ax.get_xticklabels()]
+    wrapped_labels = [label.replace(' ', '\n') for label in labels]  # zawijamy tekst, aby na siebie nie nachodził
+    ax.set_xticklabels(wrapped_labels)
 
     plt.title('Liczba dni z przekroczeniem normy WHO (15 µg/m³) w roku\n(3 najlepsze i 3 najgorsze stacje w 2024)', fontsize=14)
     plt.xlabel('Stacja')
