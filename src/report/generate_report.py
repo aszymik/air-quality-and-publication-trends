@@ -3,17 +3,36 @@ import pandas as pd
 import os
 import sys
 import re
+import yaml
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+import numpy as np 
 from collections import Counter
 from pathlib import Path
 
-
+# Lista słów do ignorowania
 STOPWORDS = set([
     "the", "of", "and", "in", "to", "a", "for", "on", "with", "is", "by", "an",
     "at", "from", "as", "validation", "using", "study", "analysis", "during",
-    "between", "impact", "effect", "effects", "associated", "association",
-    "concentration", "concentrations", "levels", "quality", "pollution", "particulate", "matter"
+    "between", "impact", "effect", "effects", "associated", "association"
 ])
+
+def load_config_keywords(config_path):
+    """Wczytuje słowa kluczowe z pliku yaml i dodaje je do STOPWORDS."""
+    try:
+        with open(config_path, 'r') as f:
+            config = yaml.safe_load(f)
+            
+        keywords = config.get('keywords', [])
+        print(f"Słowa kluczowe z configu: {keywords}")
+        
+        for phrase in keywords:
+            # Rozbijamy frazy na słowa
+            words = re.findall(r'\b[a-z]{3,}\b', phrase.lower())
+            STOPWORDS.update(words)
+            
+    except Exception as e:
+        print(f"Ostrzeżenie: nie udało się wczytać słów kluczowych z {config_path}: {e}")
 
 def load_pm25_data(years, pm25_dir):
     dfs = []
@@ -53,30 +72,21 @@ def load_literature_data(years, lit_dir):
 
 def analyze_titles_and_plot(lit_df, years, output_dir):
     """
-    Tworzy wykres porównawczy najczęstszych słów dla pierwszego i ostatniego roku.
-    Zapisuje plik PNG i zwraca ścieżkę względną do wstawienia w MD.
+    Tworzy wykres porównawczy najczęstszych słów z publikacji dla lat z configu.
     """
     if lit_df.empty or 'title' not in lit_df.columns:
         return None
 
-    # Wybieramy pierwszy i ostatni rok do porównania
-    year_start = min(years)
-    year_end = max(years)
-    
-    compare_years = [year_start]
-    if year_end != year_start:
-        compare_years.append(year_end)
-
-    # Zbieranie słów per rok
+    compare_years = sorted(years)
     word_counts = {}
     
     for y in compare_years:
+        # Filtrujemy dla danego roku
         titles = lit_df[lit_df['year'] == y]['title'].dropna().astype(str).tolist()
         words = []
         for t in titles:
-            # Tokenizacja: małe litery, tylko znaki alfanumeryczne
+            # Słowa mające minimum 3 litery
             tokens = re.findall(r'\b[a-z]{3,}\b', t.lower())
-            # Filtrowanie po stopwords
             tokens = [w for w in tokens if w not in STOPWORDS]
             words.extend(tokens)
         word_counts[y] = Counter(words)
@@ -84,30 +94,33 @@ def analyze_titles_and_plot(lit_df, years, output_dir):
     if not any(word_counts.values()):
         return None
 
-    # Top 10 słów dla każdego z wybranych lat
-    all_top_words = set()
+    # Żeby wykres był czytelny, bierzemy 12 najpopularniejszych słów w ogóle
+    total_counter = Counter()
     for y in compare_years:
-        for word, _ in word_counts[y].most_common(10):
-            all_top_words.add(word)
+        total_counter.update(word_counts[y])
+        
+    top_words_list = [w for w, c in total_counter.most_common(12)]
+    sorted_words = sorted(top_words_list)
     
-    sorted_words = sorted(list(all_top_words))
-    
-    # Dataframe do wykresu
+    # Df do wykresu
     plot_data = {'Słowo': sorted_words}
     for y in compare_years:
         plot_data[str(y)] = [word_counts[y].get(w, 0) for w in sorted_words]
     
     df_plot = pd.DataFrame(plot_data).set_index('Słowo')
+    colors = cm.viridis(np.linspace(0.2, 0.8, len(compare_years)))
 
-    plt.figure(figsize=(10, 6))
-    df_plot.plot(kind='bar', width=0.8, color=['skyblue', 'salmon'][:len(compare_years)])
-    plt.title(f"Najczęstsze słowa w tytułach: {year_start} vs {year_end}")
+    plt.figure(figsize=(12, 6))
+    df_plot.plot(kind='bar', width=0.8, color=colors, ax=plt.gca())
+    
+    plt.title(f"Najczęstsze słowa w tytułach (lata: {', '.join(map(str, compare_years))})")
     plt.ylabel("Liczba wystąpień")
     plt.xlabel("Słowo")
     plt.xticks(rotation=45, ha='right')
+    plt.legend(title="Rok")
     plt.tight_layout()
 
-    filename = "title_analysis_comparison.png"
+    filename = "title_analysis_all_years.png"
     output_path = Path(output_dir) / filename
     plt.savefig(output_path)
     plt.close()
@@ -226,6 +239,9 @@ def main():
     if not os.path.exists(args.pm25_dir):
         print(f"Błąd: katalog {args.pm25_dir} nie istnieje!")
         sys.exit(1)
+    
+    # Wczytujemy słowa kluczowe z configu i dodajemy do stopwords
+    load_config_keywords(args.config)
 
     pm25_data = load_pm25_data(args.years, args.pm25_dir)
     lit_data = load_literature_data(args.years, args.lit_dir)

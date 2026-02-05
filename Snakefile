@@ -119,7 +119,8 @@ rule report_task4:
         pm25_files = expand(PM25_RESULTS_DIR + "/{year}/exceedance_days.csv", year=YEARS),
         pubmed_files = expand("results/literature/{year}/pubmed_papers.csv", year=YEARS),
         figures = expand(PM25_RESULTS_DIR + "/{year}/figures", year=YEARS),
-        script = "src/report/generate_report.py"
+        script = "src/report/generate_report.py",
+        config = CONFIG_PATH
     output:
         report = "results/report_task4.md"
     params:
@@ -135,5 +136,6 @@ rule report_task4:
             --pm25_dir {params.pm25_dir} \
             --lit_dir {params.lit_dir} \
             --output {output.report} \
+            --config {input.config} \
             > {log} 2>&1
         """

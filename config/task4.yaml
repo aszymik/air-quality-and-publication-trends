@@ -1,5 +1,5 @@
-years: [2022]
-cities: ["Warszawa", "Katowice"]
+years: [2022, 2023, 2024]
+cities: ["Wrocław", "Katowice"]
 entrez_email: "a.szymik@student.uw.edu.pl"
 max_records: 100
 journals: ["Nature", "Science"]
