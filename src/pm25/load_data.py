@@ -139,6 +139,30 @@ def change_midnight_measurements(df: pd.DataFrame) -> pd.DataFrame:
 
     return df
 
+def clean_numeric_columns(df, exclude_cols=['Data']):
+    """Ujednolica format kolumn numerycznych – zamienia przecinki na kropki.
+    Arguments:
+        df: DataFrame z danymi PM2.5, gdzie jedna z kolumn to 'Data'.
+        exclude_cols: kolumny do pomienięcia.
+    Returns:
+        DataFrame z ujednoliconymi wartościami numerycznymi."""
+    cols_to_fix = df.select_dtypes(include=['object']).columns.difference(exclude_cols)
+    
+    for col in cols_to_fix:
+        # Sprawdzamy, czy w kolumnie występują przecinki
+        # i czy po zamianie da się to skonwertować na liczbę
+        try:
+            df[col] = (
+                df[col]
+                .astype(str)
+                .str.replace(",", ".", regex=False)
+                .astype(float)
+            )
+        except ValueError:
+            # Jeśli konwersja na float się nie udała, zostawiamy
+            continue
+    return df
+
 def download_and_preprocess_data(year: int, gios_id: str, gios_filename: str, code_to_city: dict, old_to_new_code: dict) -> pd.DataFrame:
     """Pobiera i przygotowuje dane z archiwum GIOŚ dla podanego roku.
     Arguments:
@@ -165,15 +189,8 @@ def download_and_preprocess_data(year: int, gios_id: str, gios_filename: str, co
     # Usuwamy niepotrzebne wiersze nagłówkowe
     df = df[~df['Data'].isin(('Nr', 'Wskaźnik', 'Czas uśredniania', 'Jednostka', 'Kod stanowiska', 'Czas pomiaru'))]
 
-    # Dla 2018 roku (inny format) konwertujemy dane na numeryczne
-    if year == 2018:
-        value_cols = df.columns.difference(['Data'])
-        df[value_cols] = (
-            df[value_cols]
-            .astype(str)
-            .apply(lambda col: col.str.replace(",", ".", regex=False))
-            .astype(float)
-        )
+    # Konwertujemy dane z przecinkami na numeryczne
+    df = clean_numeric_columns(df)
 
     # Przesuwamy pomiary z północy
     df = change_midnight_measurements(df)

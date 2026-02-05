@@ -44,13 +44,22 @@ def main():
     os.makedirs(output_dir, exist_ok=True)
     data_csv_path = f'{output_dir}/{year}.csv'
     
-    df = download_and_preprocess_data(
-            year=args.year,
-            gios_id=gios_ids[year],
-            gios_filename=f'{year}_PM25_1g.xlsx',
-            code_to_city=code_to_city,
-            old_to_new_code=old_to_new_code
-        )
+    try:
+        df = download_and_preprocess_data(
+                year=args.year,
+                gios_id=gios_ids[year],
+                gios_filename=f'{year}_PM25_1g.xlsx',
+                code_to_city=code_to_city,
+                old_to_new_code=old_to_new_code
+            )
+    except KeyError:
+        df = download_and_preprocess_data(
+                year=args.year,
+                gios_id=gios_ids[year],
+                gios_filename=f'{year}_PM2.5_1g.xlsx',
+                code_to_city=code_to_city,
+                old_to_new_code=old_to_new_code
+            )
     df.to_csv(data_csv_path, index=None)
 
 if __name__ == "__main__":

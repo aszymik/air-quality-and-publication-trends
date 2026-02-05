@@ -36,7 +36,7 @@ def load_config_keywords(config_path):
 
 def load_pm25_data(years, pm25_dir):
     dfs = []
-    print(f"DEBUG: Szukam danych PM2.5 w {pm25_dir} dla lat {years}")
+    print(f"Szukam danych PM2.5 w {pm25_dir} dla lat {years}")
     
     for year in years:
         file_path = Path(pm25_dir) / str(year) / "exceedance_days.csv"
